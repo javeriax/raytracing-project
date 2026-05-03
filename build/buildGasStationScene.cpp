@@ -1,3 +1,4 @@
+
 #include "../cameras/Perspective.hpp"
 #include "../geometry/OBJLoader.hpp"
 #include "../geometry/Plane.hpp"
@@ -11,39 +12,59 @@
 #include "../tracers/ShadowCaster.hpp"
 #include "../acceleration/BVH.hpp"
 #include "../utilities/Constants.hpp"
-#include "../world/World.hpp"
+#include "../world/World.hpp" 
+#include "../geometry/Sphere.hpp"
 #include <map>
 #include <string>
 
 void World::build(void)
 {
-    // Scene bounds (with transform 7.96, -7.67, 0):
-    //   min: (-13.92, -7.69, -18.66)  max: (9.09, -2.99, 2.42)
-    //   center: (-2.42, -5.34, -8.12) size: (23.01, 4.70, 21.08)
-    //
-    // Blender→OBJ axis: X→X, Z→Y, Y→-Z, then +OBJTransform
-    // Camera: Blender(-6.70, -6.61, 1.83) → OBJ(1.26, -5.84, 6.61)
 
-    // VP centered on camera X,Y for straight-ahead view (no lateral skew).
-    // Camera at (1.26, -5.84, 6.61), VP at Z=2.
-    // VP center = (1.26, -5.84). Size 7.0 x 5.25 (4:3).
     vplane.top_left.x     = -2.24f;
     vplane.top_left.y     = -3.22f;
     vplane.top_left.z     =  2.0f;
     vplane.bottom_right.x =  4.76f;
     vplane.bottom_right.y = -8.47f;
-    vplane.bottom_right.z =  2.0f;
+    vplane.bottom_right.z =  2.0f;  
+     
+    set_camera(new Perspective(3.0f, -5.0f, 8.0f)); //a bit from right, shows inside lights too
+    // set_camera(new Perspective(7.0, -8.0, 4.0));//opposite side
+    // set_camera(new Perspective(3.0f, -5.0f, 7.0f)); //left
+
+    // //LOW RESOLUTION
+    // vplane.hres = 480;
+    // vplane.vres = 360;
+    // sampler_ptr = new Jittered(camera_ptr, &vplane, 2);
+
+    //HIGH RESOLUTION
     vplane.hres = 1920;
     vplane.vres = 1080;
+    sampler_ptr = new Jittered(camera_ptr, &vplane, 6); 
 
-    bg_color          = RGBColor(0.0f, 0.0f, 0.0f);
+    // bg_color          = RGBColor(0.0f, 0.0f, 0.0f);
+    bg_color          = RGBColor(0.005f, 0.005f, 0.02f);
     ambient_color     = RGBColor(1.0f, 0.95f, 0.85f);
     ambient_intensity = 0.45f;
-
-    set_camera(new Perspective(1.26f, -5.84f, 6.61f));
-    sampler_ptr = new Jittered(camera_ptr, &vplane, 8);
     set_tracer(new ShadowCaster(this));
     set_acceleration(new BVH(this));
+
+
+    // stars
+ 
+    Matte* mat_star = new Matte();
+    mat_star->set_ka(3.0f); // bright 
+    mat_star->set_cd(RGBColor(1.2f, 1.2f, 1.2f)); 
+
+    srand(42); 
+    for (int i = 0; i < 40; i++) {
+        float x = -100.0f + (static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 140.0f)));
+        float y = 4.0f + (static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / 30.0f)));
+        float z = -80.0f; 
+
+        Sphere* s = new Sphere(Point3D(x, y, z), 0.06f);
+        s->set_material(mat_star);
+        add_geometry(s);
+    }
 
     // -------------------------------------------------------
     // LIGHTS — 8 canopy lights from Blender Light Positions.txt
@@ -52,6 +73,10 @@ void World::build(void)
     // -------------------------------------------------------
     RGBColor warm(1.0f, 0.92f, 0.75f);
     float canopy_i = 250.0f;
+
+   
+    // Highlights the dark crevices of the bike engine and car bumper.
+    add_light(new PointLight(Point3D(2.0f, -6.5f, 2.0f), RGBColor(0.8f, 0.85f, 1.0f), 120.0f));
 
     // Canopy lights at Y=-3.60 (below ceiling) for clear downward illumination
     add_light(new PointLight(Point3D(-1.29f, -3.60f, -10.28f), warm, canopy_i));
@@ -84,9 +109,14 @@ void World::build(void)
         Vector3D(0.0f, -0.3f, -1.0f),
         RGBColor(0.12f, 0.14f, 0.28f), 0.6f));
 
-    // -------------------------------------------------------
+    RGBColor neon_pink(1.5f, 0.0f, 0.65f);
+
+    // Pink — along front roof edge, moved inward to actually hit canopy geometry
+    add_light(new PointLight(Point3D(-4.0f, -3.20f, -2.0f), neon_pink, 400.0f));
+    add_light(new PointLight(Point3D( 0.0f, -3.20f, -2.0f), neon_pink, 400.0f));
+
+
     // MATERIALS — mapped to usemtl names from MTL file
-    // -------------------------------------------------------
 
     // Default fallback for unmapped materials
     Phong* mat_default = new Phong();
@@ -97,15 +127,51 @@ void World::build(void)
     mat_default->set_cd(RGBColor(0.5f, 0.48f, 0.45f));
     mat_default->set_cs(RGBColor(1.0f, 0.95f, 0.85f));
 
-    // 1. Glossy black car paint — dark reflective
+
+    // BIKE GREY-SCALE VARIATIONS
+    
+    // Light Metallic Grey — Body/Tank
+    Reflective* mat_bike_body = new Reflective();
+    mat_bike_body->set_ka(0.15f); 
+    mat_bike_body->set_kd(0.4f); 
+    mat_bike_body->set_ks(0.8f);  
+    mat_bike_body->set_kr(0.2f); 
+    mat_bike_body->set_exp(200.0f); 
+    mat_bike_body->set_cd(RGBColor(0.55f, 0.55f, 0.58f)); 
+    mat_bike_body->set_cr(RGBColor(0.7f, 0.7f, 0.8f));
+
+    // Medium Steel — Engine
+    Phong* mat_bike_engine = new Phong();
+    mat_bike_engine->set_ka(0.2f);
+    mat_bike_engine->set_kd(0.5f);
+    mat_bike_engine->set_ks(0.4f);
+    mat_bike_engine->set_exp(50.0f);
+    mat_bike_engine->set_cd(RGBColor(0.35f, 0.35f, 0.37f));
+
+    // Dark Gunmetal — Frame
+    Phong* mat_bike_frame = new Phong();
+    mat_bike_frame->set_ka(0.1f);
+    mat_bike_frame->set_kd(0.3f);
+    mat_bike_frame->set_ks(0.6f);
+    mat_bike_frame->set_exp(150.0f);
+    mat_bike_frame->set_cd(RGBColor(0.15f, 0.15f, 0.18f));
+
+    // Matte Charcoal — Non-reflective parts
+    Matte* mat_charcoal = new Matte();
+    mat_charcoal->set_ka(0.15f);
+    mat_charcoal->set_kd(0.4f);
+    mat_charcoal->set_cd(RGBColor(0.1f, 0.1f, 0.1f));
+
+     
+    // 1. Glossy black car paint — glossy, slightly lighter base
     Reflective* mat_carpaint = new Reflective();
-    mat_carpaint->set_ka(0.05f);
-    mat_carpaint->set_kd(0.08f);
-    mat_carpaint->set_ks(0.6f);
-    mat_carpaint->set_kr(0.35f);
-    mat_carpaint->set_exp(200.0f);
-    mat_carpaint->set_cd(RGBColor(0.02f, 0.02f, 0.02f));
-    mat_carpaint->set_cr(RGBColor(0.4f, 0.4f, 0.45f));
+    mat_carpaint->set_ka(0.15f); 
+    mat_carpaint->set_kd(0.15f); 
+    mat_carpaint->set_ks(0.9f);  
+    mat_carpaint->set_kr(0.6f);                          // stronger reflection
+    mat_carpaint->set_exp(300.0f); 
+    mat_carpaint->set_cd(RGBColor(0.06f, 0.06f, 0.07f)); 
+    mat_carpaint->set_cr(RGBColor(0.6f, 0.7f, 0.9f));  // blue-tinted reflection
 
     // 2. Red paint — glossy red
     Phong* mat_red = new Phong();
@@ -144,7 +210,7 @@ void World::build(void)
     mat_concrete->set_cd(RGBColor(0.4f, 0.4f, 0.38f));
     mat_concrete->set_cs(RGBColor(0.5f, 0.5f, 0.5f));
 
-    // 6. House / canopy structure — lighter grey so top edge is visible against black sky
+    // 6. House / canopy structure — original dark values restored
     Phong* mat_house = new Phong();
     mat_house->set_ka(0.25f);
     mat_house->set_kd(0.55f);
@@ -217,17 +283,18 @@ void World::build(void)
     mat_headlight_glass->set_kd(0.3f);
     mat_headlight_glass->set_ks(0.5f);
     mat_headlight_glass->set_exp(300.0f);
-    mat_headlight_glass->set_cd(RGBColor(0.7f, 0.75f, 0.8f));
+    mat_headlight_glass->set_cd(RGBColor(1.2f, 1.2f, 1.2f)); //v bright for bloom (neon effect)
     mat_headlight_glass->set_cs(RGBColor(1.0f, 1.0f, 1.0f));
 
-    // 13. Black plastic — dark low-specular
+
+    // 13. Black plastic — dark grey, medium gloss
     Phong* mat_plastic = new Phong();
-    mat_plastic->set_ka(0.05f);
-    mat_plastic->set_kd(0.15f);
-    mat_plastic->set_ks(0.3f);
-    mat_plastic->set_exp(150.0f);
-    mat_plastic->set_cd(RGBColor(0.01f, 0.01f, 0.01f));
-    mat_plastic->set_cs(RGBColor(0.4f, 0.4f, 0.4f));
+    mat_plastic->set_ka(0.15f);
+    mat_plastic->set_kd(0.35f);
+    mat_plastic->set_ks(0.4f);   
+    mat_plastic->set_exp(60.0f); 
+    mat_plastic->set_cd(RGBColor(0.12f, 0.12f, 0.12f)); 
+    mat_plastic->set_cs(RGBColor(0.5f, 0.5f, 0.5f));
 
     // 14. Grey tiles — lighter concrete
     Phong* mat_tiles = new Phong();
@@ -262,27 +329,58 @@ void World::build(void)
     mat_wood->set_kd(0.5f);
     mat_wood->set_cd(RGBColor(0.35f, 0.22f, 0.1f));
 
-    // 18. Carbon fiber — dark grey
+ 
+    // 18. Carbon fiber — medium-dark grey, highly specular
     Phong* mat_carbon = new Phong();
-    mat_carbon->set_ka(0.08f);
-    mat_carbon->set_kd(0.3f);
-    mat_carbon->set_ks(0.4f);
-    mat_carbon->set_exp(200.0f);
-    mat_carbon->set_cd(RGBColor(0.08f, 0.08f, 0.08f));
-    mat_carbon->set_cs(RGBColor(0.5f, 0.5f, 0.5f));
+    mat_carbon->set_ka(0.15f);
+    mat_carbon->set_kd(0.4f);
+    mat_carbon->set_ks(0.6f);
+    mat_carbon->set_exp(120.0f);
+    mat_carbon->set_cd(RGBColor(0.2f, 0.2f, 0.2f)); 
+    mat_carbon->set_cs(RGBColor(0.6f, 0.6f, 0.6f));
 
-    // Build material map — every usemtl name from the MTL file
+
+    // Pink for pillar stripes — will glow with bloom
+    Phong* mat_pillar_pink = new Phong();
+    mat_pillar_pink->set_ka(8.0f); 
+    mat_pillar_pink->set_kd(20.0f);
+    mat_pillar_pink->set_ks(0.3f);
+    mat_pillar_pink->set_exp(50.0f);
+    mat_pillar_pink->set_cd(RGBColor(1.5f, 0.0f, 0.65f));  // bright pink
+    mat_pillar_pink->set_cs(RGBColor(1.0f, 0.5f, 0.8f));
+    
+    // Dedicated emissive material JUST for the roof strips
+    Phong* mat_roof_neon = new Phong();
+    mat_roof_neon->set_ka(1.0f);
+    mat_roof_neon->set_kd(0.5f);  // allow direct light contribution too
+    mat_roof_neon->set_ks(0.0f);
+    mat_roof_neon->set_exp(1.0f);
+    mat_roof_neon->set_cd(RGBColor(1.0f, 0.0f, 0.55f));
+    mat_roof_neon->set_cs(RGBColor(0.0f, 0.0f, 0.0f));
+
     std::map<std::string, Material*> mtl_map;
 
+    // sign colors
+    mtl_map["pink"]     = mat_roof_neon;
+    mtl_map["pink.001"] = mat_roof_neon;
+    mtl_map["blue"]     = mat_roof_neon;
+    mtl_map["blue.001"] = mat_roof_neon;
+    mtl_map["orange"]   = mat_indicator;
+    mtl_map["yellow"]   = mat_indicator;
+    mtl_map["purple"]   = mat_pillar_pink;
+    mtl_map["red"]      = mat_red;
+    mtl_map["green"]    = mat_green;
+
     // Glossy black car paint
-    mtl_map["CarPaint"]           = mat_carpaint;
-    mtl_map["Black_Carpaint"]     = mat_carpaint;
-    mtl_map["glossy_black_metal"] = mat_carpaint;
+    mtl_map["CarPaint"] = mat_carpaint;
+    mtl_map["Black_Carpaint"]     = mat_bike_frame;
+    mtl_map["glossy_black_metal"] = mat_bike_frame;
     mtl_map["brembo"]             = mat_carpaint;
-    mtl_map["rims"]               = mat_carpaint;
+    mtl_map["rims"]               = mat_bike_engine;
 
     // Red
-    mtl_map["RED"]                = mat_red;
+    mtl_map["RED"]                = mat_pillar_pink;
+    mtl_map["Roof_Neon"]          = mat_roof_neon;   
     mtl_map["Material.001"]       = mat_red;
     mtl_map["red_metal"]          = mat_red;
     mtl_map["brakes"]             = mat_red;
@@ -291,19 +389,19 @@ void World::build(void)
     // Chrome / bright metal
     mtl_map["chrome"]             = mat_chrome;
     mtl_map["Metal"]              = mat_chrome;
-    mtl_map["chain"]              = mat_chrome;
-    mtl_map["disk_brake"]         = mat_chrome;
+    mtl_map["chain"]              = mat_charcoal;
+    mtl_map["disk_brake"]         = mat_bike_engine;
     mtl_map["emblem"]             = mat_chrome;
-    mtl_map["engine"]             = mat_chrome;
+    mtl_map["engine"]             = mat_bike_engine;
     mtl_map["Brushed_used_metal_silver"] = mat_chrome;
 
     // Steel / darker metal
-    mtl_map["STEEL"]              = mat_steel;
-    mtl_map["darker_metal"]       = mat_steel;
-    mtl_map["shock_absorbers"]    = mat_steel;
+    mtl_map["STEEL"]              = mat_bike_engine;
+    mtl_map["darker_metal"]       = mat_bike_frame;
+    mtl_map["shock_absorbers"]    = mat_bike_body;
     mtl_map["gril"]               = mat_steel;
     mtl_map["gril_black"]         = mat_steel;
-    mtl_map["black_metal"]        = mat_steel;
+    mtl_map["black_metal"]        = mat_bike_frame;
     mtl_map["black_button"]       = mat_steel;
 
     // Concrete / building
@@ -346,11 +444,15 @@ void World::build(void)
     mtl_map["Automotive_led_lights.HOUSE"] = mat_emissive;
 
     // Car headlight LED tubes — bright white
-    mtl_map["Head_Light_Led_Tube"]        = mat_headlight;
-    mtl_map["Head_Light_Led_Tube.001"]    = mat_headlight;
+    mtl_map["Head_Light_Led_Tube"]         = mat_headlight;
+    mtl_map["Head_Light_Led_Tube.001"]     = mat_headlight;
 
     // Headlight glass — rendered as glowing since we can't do transparency
-    mtl_map["HeadLight_Glass"]            = mat_headlight;
+    mtl_map["HeadLight_Glass"]             = mat_headlight;
+
+    // Headlight glass — now actually transparent
+    //Transparent* mat_hlight_glass = new Transparent(0.08f, RGBColor(0.9f, 0.95f, 1.0f));
+    // mtl_map["HeadLight_Glass"] = mat_hlight_glass;
 
     // Tail lights — red emissive
     mtl_map["Tailight_Led_Tube"]     = mat_taillight;
@@ -384,14 +486,14 @@ void World::build(void)
     mtl_map["engine_sticker"]     = mat_default;
     mtl_map["Container_sheet_rusty"] = mat_default;
 
-    // Ground plane — dark reflective asphalt
+    // Ground
     Reflective* gnd_mat = new Reflective();
-    gnd_mat->set_ka(0.1f);
-    gnd_mat->set_kd(0.35f);
+    gnd_mat->set_ka(0.15f);
+    gnd_mat->set_kd(0.4f);
     gnd_mat->set_ks(0.4f);
     gnd_mat->set_kr(0.2f);
     gnd_mat->set_exp(60.0f);
-    gnd_mat->set_cd(RGBColor(0.15f, 0.15f, 0.17f));
+    gnd_mat->set_cd(RGBColor(0.12f, 0.12f, 0.13f));
     gnd_mat->set_cr(RGBColor(0.5f, 0.55f, 0.7f));
 
     Plane* ground = new Plane(
@@ -402,4 +504,5 @@ void World::build(void)
 
     OBJTransform t(1.0f, 7.96f, -7.67f, 0.0f);
     load_obj_mtl("Scene/GasStation_Car_Bike.obj", *this, mtl_map, mat_default, t);
+    
 }

@@ -24,6 +24,6 @@ public:
     void set_cd(const RGBColor &c);
     void set_cs(const RGBColor &c);
     void set_exp(float e);
-
+    bool is_roof_neon = false;
     virtual RGBColor shade(const ShadeInfo &sinfo) const override;
 };
