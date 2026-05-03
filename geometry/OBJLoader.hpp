@@ -45,4 +45,15 @@ struct OBJTransform {
 void load_obj(const std::string& filename,
               World& world,
               Material* mat,
-              const OBJTransform& transform = OBJTransform());  
+              const OBJTransform& transform = OBJTransform());
+
+#include <map>
+
+// loads a .obj file with per-material support via usemtl lines
+// materials maps material names (from usemtl) to Material pointers
+// faces with no usemtl or unknown names use default_mat
+void load_obj_mtl(const std::string& filename,
+                  World& world,
+                  const std::map<std::string, Material*>& materials,
+                  Material* default_mat,
+                  const OBJTransform& transform = OBJTransform());  

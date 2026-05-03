@@ -1,1 +1,1 @@
-g++ -std=c++14 -O2 raytracer.cpp world/*.cpp utilities/*.cpp geometry/*.cpp cameras/*.cpp image/*.cpp samplers/*.cpp materials/*.cpp lights/*.cpp brdf/*.cpp tracers/*.cpp acceleration/*.cpp build/Buildmotorcyclescene.cpp -o raytracer.exe
+g++ -std=c++14 -O2 raytracer.cpp world/*.cpp utilities/*.cpp geometry/*.cpp cameras/*.cpp image/*.cpp samplers/*.cpp materials/*.cpp lights/*.cpp brdf/*.cpp tracers/*.cpp acceleration/*.cpp build/BuildGasStationScene.cpp -o raytracer.exe

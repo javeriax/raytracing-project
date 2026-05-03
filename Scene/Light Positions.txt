@@ -1,0 +1,87 @@
+Point.016:
+Location:
+X: -9.24719 m
+Y: 10.2784 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90
+
+Point.017:
+Location:
+X: -6.67343 m
+Y: 10.2784 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90
+
+Point.018:
+Location:
+X: -6.67221 m
+Y: 8.53858 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90
+
+Point.019:
+Location:
+X: -6.66975 m
+Y: 5.05896 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90
+
+Point.020:
+Location:
+X: -9.24597 m
+Y: 8.53858 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90
+
+Point.021:
+Location:
+X: -9.24351 m
+Y: 5.05896 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90
+
+Point.032:
+Location:
+X: -9.24474 m
+Y: 6.79877 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90
+
+Point.033:
+Location:
+X: -6.67097 m
+Y: 6.79877 m
+Z: 4.29757 m
+
+Rotation:
+X: 0
+Y: 0
+Z: -90

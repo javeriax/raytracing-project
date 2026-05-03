@@ -132,6 +132,9 @@ void load_obj(const std::string &filename,
     int tri_count = 0;
     std::string line;
 
+    float bmin_x = 1e30f, bmin_y = 1e30f, bmin_z = 1e30f;
+    float bmax_x = -1e30f, bmax_y = -1e30f, bmax_z = -1e30f;
+
     while (std::getline(file, line))
     {
         if (line.empty() || line[0] == '#')
@@ -146,7 +149,14 @@ void load_obj(const std::string &filename,
             // read vertex and apply transform immediately
             float x, y, z;
             iss >> x >> y >> z;
-            vertices.push_back(transform.apply(Point3D(x, y, z)));
+            Point3D tp = transform.apply(Point3D(x, y, z));
+            vertices.push_back(tp);
+            if (tp.x < bmin_x) bmin_x = tp.x;
+            if (tp.y < bmin_y) bmin_y = tp.y;
+            if (tp.z < bmin_z) bmin_z = tp.z;
+            if (tp.x > bmax_x) bmax_x = tp.x;
+            if (tp.y > bmax_y) bmax_y = tp.y;
+            if (tp.z > bmax_z) bmax_z = tp.z;
         }
         else if (token == "f")
         {
@@ -183,4 +193,114 @@ void load_obj(const std::string &filename,
     std::cout << "loaded " << filename << ": "
               << vertices.size() << " verts, "
               << tri_count << " triangles\n";
+
+    if (!vertices.empty())
+    {
+        std::cout << "  bounds min: (" << bmin_x << ", " << bmin_y << ", " << bmin_z << ")\n";
+        std::cout << "  bounds max: (" << bmax_x << ", " << bmax_y << ", " << bmax_z << ")\n";
+        std::cout << "  center:     (" << (bmin_x + bmax_x) * 0.5f << ", "
+                  << (bmin_y + bmax_y) * 0.5f << ", "
+                  << (bmin_z + bmax_z) * 0.5f << ")\n";
+        std::cout << "  size:       (" << (bmax_x - bmin_x) << ", "
+                  << (bmax_y - bmin_y) << ", "
+                  << (bmax_z - bmin_z) << ")\n";
+    }
+}
+
+#include <map>
+
+void load_obj_mtl(const std::string &filename,
+                  World &world,
+                  const std::map<std::string, Material *> &materials,
+                  Material *default_mat,
+                  const OBJTransform &transform)
+{
+    std::ifstream file(filename);
+    if (!file.is_open())
+    {
+        std::cerr << "error: could not open: " << filename << "\n";
+        return;
+    }
+
+    std::vector<Point3D> vertices;
+    Material *current_mat = default_mat;
+    int tri_count = 0;
+    int mat_switches = 0;
+    std::string line;
+
+    float bmin_x = 1e30f, bmin_y = 1e30f, bmin_z = 1e30f;
+    float bmax_x = -1e30f, bmax_y = -1e30f, bmax_z = -1e30f;
+
+    while (std::getline(file, line))
+    {
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        std::istringstream iss(line);
+        std::string token;
+        iss >> token;
+
+        if (token == "v")
+        {
+            float x, y, z;
+            iss >> x >> y >> z;
+            Point3D tp = transform.apply(Point3D(x, y, z));
+            vertices.push_back(tp);
+            if (tp.x < bmin_x) bmin_x = tp.x;
+            if (tp.y < bmin_y) bmin_y = tp.y;
+            if (tp.z < bmin_z) bmin_z = tp.z;
+            if (tp.x > bmax_x) bmax_x = tp.x;
+            if (tp.y > bmax_y) bmax_y = tp.y;
+            if (tp.z > bmax_z) bmax_z = tp.z;
+        }
+        else if (token == "usemtl")
+        {
+            std::string mat_name;
+            iss >> mat_name;
+            auto it = materials.find(mat_name);
+            if (it != materials.end())
+                current_mat = it->second;
+            else
+                current_mat = default_mat;
+            mat_switches++;
+        }
+        else if (token == "f")
+        {
+            std::vector<int> idx;
+            std::string vt;
+            while (iss >> vt)
+                idx.push_back(parse_vertex_index(vt));
+
+            for (int i = 1; i + 1 < (int)idx.size(); i++)
+            {
+                int i0 = idx[0], i1 = idx[i], i2 = idx[i + 1];
+                int n = (int)vertices.size();
+                if (i0 < 0 || i1 < 0 || i2 < 0) continue;
+                if (i0 >= n || i1 >= n || i2 >= n) continue;
+
+                Triangle *tri = new Triangle(
+                    vertices[i0], vertices[i1], vertices[i2]);
+                tri->set_material(current_mat);
+                world.add_geometry(tri);
+                tri_count++;
+            }
+        }
+    }
+
+    std::cout << "loaded " << filename << ": "
+              << vertices.size() << " verts, "
+              << tri_count << " triangles, "
+              << mat_switches << " material switches\n";
+
+    if (!vertices.empty())
+    {
+        std::cout << "  bounds min: (" << bmin_x << ", " << bmin_y << ", " << bmin_z << ")\n";
+        std::cout << "  bounds max: (" << bmax_x << ", " << bmax_y << ", " << bmax_z << ")\n";
+        std::cout << "  center:     (" << (bmin_x + bmax_x) * 0.5f << ", "
+                  << (bmin_y + bmax_y) * 0.5f << ", "
+                  << (bmin_z + bmax_z) * 0.5f << ")\n";
+        std::cout << "  size:       (" << (bmax_x - bmin_x) << ", "
+                  << (bmax_y - bmin_y) << ", "
+                  << (bmax_z - bmin_z) << ")\n";
+    }
 }
