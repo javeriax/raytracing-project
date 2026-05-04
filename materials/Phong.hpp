@@ -6,7 +6,7 @@
 #include "../utilities/RGBColor.hpp"
 
 // phong material - diffuse + glossy highlights
-// like shiny plastic, painted surfaces, skin
+
 class Phong : public Material
 {
 private:

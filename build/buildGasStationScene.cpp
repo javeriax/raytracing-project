@@ -27,24 +27,23 @@ void World::build(void)
     vplane.bottom_right.y = -8.47f;
     vplane.bottom_right.z = 2.0f;
 
-    set_camera(new Perspective(3.0f, -5.0f, 8.0f)); // a bit from right, shows inside lights too
-    // set_camera(new Perspective(7.0, -8.0, 4.0));//opposite side
-    // set_camera(new Perspective(3.0f, -5.0f, 7.0f)); //left
+    // alter camerae and pperspective here
 
-    // VERYYY LOW RESOLUTION FOR WITHOUT BVH
-    // vplane.hres = 16;
-    // vplane.vres = 12;
+    set_camera(new Perspective(3.0f, -5.0f, 8.0f)); // a bit from right, shows inside lights too
+    // set_camera(new Perspective(7.0, -8.0, 4.0));     //opposite side
+    // set_camera(new Perspective(3.0f, -5.0f, 7.0f));  //left
+
+    // alter resolution and jitter here:
+
+    // // LOW RESOLUTION FOR WITHOUT BVH
+    // vplane.hres = 120;
+    // vplane.vres = 90;
     // sampler_ptr = new Jittered(camera_ptr, &vplane, 1);
 
-    // LOW RESOLUTION WITHOUT BVH
-    vplane.hres = 120;
-    vplane.vres = 90;
-    sampler_ptr = new Jittered(camera_ptr, &vplane, 1);
-
-    // //LOW RESOLUTION
-    // vplane.hres = 480; //240 -> 120 -> 60
-    // vplane.vres = 360; //180 -> 90 -> 45
-    // sampler_ptr = new Jittered(camera_ptr, &vplane, 2);
+    // LOW RESOLUTION
+    vplane.hres = 480;
+    vplane.vres = 360;
+    sampler_ptr = new Jittered(camera_ptr, &vplane, 2);
 
     // //HIGH RESOLUTION
     // vplane.hres = 1920;
@@ -58,7 +57,7 @@ void World::build(void)
     set_tracer(new ShadowCaster(this));
     set_acceleration(new BVH(this));
 
-    // stars
+    // stars (they are in the wide angle rendere, very few show)
 
     Matte *mat_star = new Matte();
     mat_star->set_ka(3.0f); // bright
@@ -76,11 +75,6 @@ void World::build(void)
         add_geometry(s);
     }
 
-    // -------------------------------------------------------
-    // LIGHTS — 8 canopy lights from Blender Light Positions.txt
-    // Blender (Bx,By,Bz) → OBJ (Bx+7.96, Bz-7.67, -By)
-    // All at OBJ Y=-3.37, two X columns, four Z rows
-    // -------------------------------------------------------
     RGBColor warm(1.0f, 0.92f, 0.75f);
     float canopy_i = 250.0f;
 
@@ -108,7 +102,7 @@ void World::build(void)
     add_light(new PointLight(Point3D(0.0f, -6.5f, -10.0f), warm, 40.0f));
     add_light(new PointLight(Point3D(-4.0f, -6.5f, -8.0f), warm, 30.0f));
 
-    // Strong directional downward — canopy ceiling glow
+    // Strong directional downward ; canopy ceiling glow
     add_light(new DirectionalLight(
         Vector3D(0.0f, -1.0f, 0.0f),
         RGBColor(1.0f, 0.92f, 0.75f), 3.0f));
@@ -120,7 +114,7 @@ void World::build(void)
 
     RGBColor neon_pink(1.5f, 0.0f, 0.65f);
 
-    // Pink — along front roof edge, moved inward to actually hit canopy geometry
+    // Pink:  along front roof edge, moved inward to actually hit canopy geometry
     add_light(new PointLight(Point3D(-4.0f, -3.20f, -2.0f), neon_pink, 400.0f));
     add_light(new PointLight(Point3D(0.0f, -3.20f, -2.0f), neon_pink, 400.0f));
 
@@ -453,7 +447,8 @@ void World::build(void)
     // Headlight glass — rendered as glowing since we can't do transparency
     mtl_map["HeadLight_Glass"] = mat_headlight;
 
-    // Headlight glass — now actually transparent
+    // tried transparency class but did not work out
+
     // Transparent* mat_hlight_glass = new Transparent(0.08f, RGBColor(0.9f, 0.95f, 1.0f));
     // mtl_map["HeadLight_Glass"] = mat_hlight_glass;
 

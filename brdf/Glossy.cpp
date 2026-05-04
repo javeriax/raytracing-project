@@ -29,7 +29,7 @@ RGBColor Glossy::f(const ShadeInfo &sinfo,
 }
 
 // glossy brdf has no simple closed form rho
-// return zero - diffuse handles ambient, glossy only affects direct light
+// return zero; diffuse handles ambient, glossy only affects direct light
 RGBColor Glossy::rho(const ShadeInfo &sinfo,
                      const Vector3D &wo) const
 {

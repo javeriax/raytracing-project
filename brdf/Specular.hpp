@@ -3,8 +3,8 @@
 #include "BRDF.hpp"
 #include "../utilities/RGBColor.hpp"
 
-// perfect mirror specular brdf
-// used for reflective surfaces like mirrors, chrome, still water
+
+
 // reflects in exactly one direction - the perfect mirror direction
 class Specular : public BRDF
 {

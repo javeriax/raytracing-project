@@ -38,62 +38,12 @@ void Phong::set_cd(const RGBColor &c)
 void Phong::set_cs(const RGBColor &c) { specular_brdf.set_cs(c); }
 void Phong::set_exp(float e) { specular_brdf.set_exp(e); }
 
-// RGBColor Phong::shade(const ShadeInfo &sinfo) const
-// {
-//     Vector3D wo = -sinfo.ray.d;
-//     wo.normalize();
-
-//     // ambient base
-//     RGBColor L = ambient_brdf.rho(sinfo, wo) * sinfo.w->ambient_color * sinfo.w->ambient_intensity;
-
-//     for (auto light : sinfo.w->lights)
-//     {
-//         Vector3D wi = light->get_direction(sinfo);
-//         float ndotwi = (float)(sinfo.normal * wi);
-
-//         if (ndotwi > 0.0f)
-//         {
-//             bool shadowed = false;
-//             if (light->casts_shadows())
-//             {
-//                 Ray shadow_ray(sinfo.hit_point, wi);
-//                 shadowed = sinfo.w->in_shadow(shadow_ray, light->distance(sinfo));
-//             }
-
-//             if (!shadowed)
-//             {
-//                 // diffuse + specular combined
-//                 L += (diffuse_brdf.f(sinfo, wo, wi) + specular_brdf.f(sinfo, wo, wi)) * light->L(sinfo) * ndotwi;
-//             }
-//         }
-//     }
-//     return L;
-// }
-
 RGBColor Phong::shade(const ShadeInfo &sinfo) const
 {
-    // --- NEON ROOF OVERRIDE (Only for the roof strip) ---
-    if (is_roof_neon) {
-        float y = sinfo.hit_point.y;
-        
-        // Hardcoded neon colors to avoid "get_cd" errors
-        RGBColor neon_p(1.5f, 0.0f, 0.65f);
-        RGBColor neon_b(0.0f, 0.3f, 1.5f);
-
-        // Pink Strip (Top half)
-        if (y > -3.20f) return neon_p;
-        
-        // Small Gap (Middle) - creates the "two strip" look
-        if (y <= -3.20f && y > -3.25f) return RGBColor(0, 0, 0);
-        
-        // Blue Strip (Bottom half)
-        return neon_b;
-    }
-
-    // --- YOUR ORIGINAL PHONG CODE START ---
     Vector3D wo = -sinfo.ray.d;
     wo.normalize();
 
+    // ambient base
     RGBColor L = ambient_brdf.rho(sinfo, wo) * sinfo.w->ambient_color * sinfo.w->ambient_intensity;
 
     for (auto light : sinfo.w->lights)
@@ -112,9 +62,59 @@ RGBColor Phong::shade(const ShadeInfo &sinfo) const
 
             if (!shadowed)
             {
+                // diffuse + specular combined
                 L += (diffuse_brdf.f(sinfo, wo, wi) + specular_brdf.f(sinfo, wo, wi)) * light->L(sinfo) * ndotwi;
             }
         }
     }
     return L;
-}
+    }
+
+    // RGBColor Phong::shade(const ShadeInfo &sinfo) const
+    // {
+    //     // --- NEON ROOF OVERRIDE (Only for the roof strip) ---
+    //     if (is_roof_neon) {
+    //         float y = sinfo.hit_point.y;
+
+    //         // Hardcoded neon colors to avoid "get_cd" errors
+    //         RGBColor neon_p(1.5f, 0.0f, 0.65f);
+    //         RGBColor neon_b(0.0f, 0.3f, 1.5f);
+
+    //         // Pink Strip (Top half)
+    //         if (y > -3.20f) return neon_p;
+
+    //         // Small Gap (Middle) - creates the "two strip" look
+    //         if (y <= -3.20f && y > -3.25f) return RGBColor(0, 0, 0);
+
+    //         // Blue Strip (Bottom half)
+    //         return neon_b;
+    //     }
+
+    //     // --- YOUR ORIGINAL PHONG CODE START ---
+    //     Vector3D wo = -sinfo.ray.d;
+    //     wo.normalize();
+
+    //     RGBColor L = ambient_brdf.rho(sinfo, wo) * sinfo.w->ambient_color * sinfo.w->ambient_intensity;
+
+    //     for (auto light : sinfo.w->lights)
+    //     {
+    //         Vector3D wi = light->get_direction(sinfo);
+    //         float ndotwi = (float)(sinfo.normal * wi);
+
+    //         if (ndotwi > 0.0f)
+    //         {
+    //             bool shadowed = false;
+    //             if (light->casts_shadows())
+    //             {
+    //                 Ray shadow_ray(sinfo.hit_point, wi);
+    //                 shadowed = sinfo.w->in_shadow(shadow_ray, light->distance(sinfo));
+    //             }
+
+    //             if (!shadowed)
+    //             {
+    //                 L += (diffuse_brdf.f(sinfo, wo, wi) + specular_brdf.f(sinfo, wo, wi)) * light->L(sinfo) * ndotwi;
+    //             }
+    //         }
+    //     }
+    //     return L;
+    // }

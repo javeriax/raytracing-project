@@ -4,9 +4,11 @@
 #include "../utilities/RGBColor.hpp"
 
 // glossy specular brdf (phong model)
-// shiny surfaces like polished plastic, painted metal
+
+// shiny surfaces like polished plastic, painted metal etc etc
 // reflects light in a lobe around the perfect mirror direction
 // exp controls sharpness - higher = tighter/sharper highlight
+
 class Glossy : public BRDF
 {
 private:

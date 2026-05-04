@@ -20,7 +20,6 @@ struct BVHNode
     BVHNode() : is_leaf(false) {}
 };
 
-// bvh = bounding volume hierarchy
 // organizes geometry into a tree of bounding boxes
 // a ray only needs to check objects whose bounding boxes it hits
 // this turns O(n) intersection tests into O(log n)

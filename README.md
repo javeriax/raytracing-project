@@ -46,3 +46,14 @@ To disable the acceleration structure, in raytracer.cpp use: #define USE_ACCELER
 - **Acceleration Structure:** Can be disabled by setting Flag to FALSE in raytracer.cpp
 ---
 For any issues or questions, check the code comments or contact the author.
+
+
+
+## Website
+Run on local host and go to /website
+using python3 -m http.server 8000 or npx serve .
+
+## Additional feature: Bloom Post-Processing
+
+To achieve the cyberpunk neon aesthetic, a custom post-processing bloom filter was implemented directly in C++. 
+    Separable Gaussian Blur: The isolated bright pixels are blurred using a calculated Gaussian kernel. To maximize performance, the blur is separable—calculating a horizontal 1D blur followed by a vertical 1D blur—drastically reducing the mathematical operations required per pixel.

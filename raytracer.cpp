@@ -11,9 +11,9 @@
 #include "image/Bloom.hpp"
 #include <chrono>
 
-// #define USE_ACCELERATION true // set to false to render without BVH
+#define USE_ACCELERATION true // set to false to render without BVH
 
-#define USE_ACCELERATION true // set to true to render with BVH
+// #define USE_ACCELERATION false // set to true to render with BVH
 
 int main(int argc, char **argv)
 {
@@ -67,14 +67,9 @@ int main(int argc, char **argv)
       image.set_pixel(x, y, pixel_color);
     }
 
-    // progress indicators
-    // if (x % 50 == 0)
-    // {
-    //   std::cout << "rendering: " << (x * 100 / viewplane.hres) << "%\r";
-    //   std::cout.flush();
-    // }
+    // progress indicators of render time
 
-    int update_freq = (viewplane.hres < 50) ? 1 : 10; // Updates every 10 columns for medium renders
+    int update_freq = (viewplane.hres < 50) ? 1 : 10;
 
     if (x % update_freq == 0 || x == viewplane.hres - 1)
     {
@@ -89,33 +84,21 @@ int main(int argc, char **argv)
             << (int)((int)seconds % 3600 / 60) << "m "
             << (int)seconds % 60 << "s\n";
 
-  // Bloom parameters scale with resolution
+  // bloom parameters scale with resolution
   int bloom_radius;
   float bloom_threshold, bloom_strength;
-
-  // if (world.vplane.hres >= 1920) {
-  //     // High quality 1920x1080
-  //     bloom_radius    = 30;
-  //     bloom_threshold = 0.45f;
-  //     bloom_strength  = 1.5f;
-  // } else {
-  //     // Low quality 480x360
-  //     bloom_radius    = 14;
-  //     bloom_threshold = 0.45f;
-  //     bloom_strength  = 1.5f;
-  // }
 
   if (world.vplane.hres >= 1920)
   {
     bloom_radius = 30;
-    bloom_threshold = 0.2f; // changed from 0.45
-    bloom_strength = 2.0f;  // changed from 1.5
+    bloom_threshold = 0.2f;
+    bloom_strength = 2.0f;
   }
   else
   {
     bloom_radius = 14;
-    bloom_threshold = 0.2f; // changed from 0.45
-    bloom_strength = 2.0f;  // changed from 1.5
+    bloom_threshold = 0.2f;
+    bloom_strength = 2.0f;
   }
   Bloom bloom(bloom_threshold, bloom_radius, bloom_strength);
   bloom.apply(image);
