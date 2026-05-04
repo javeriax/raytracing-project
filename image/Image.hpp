@@ -14,11 +14,11 @@ class ViewPlane;
 
 class Image
 {
-private:
+public:
   int hres, vres;    // resolution.
   RGBColor **colors; // pixel colors.
 
-public:
+
   // Constructors.
   Image(int hres, int vres);  // initialize blank image of given size.
   Image(const ViewPlane &vp); // initialize blank image with size of vp.

@@ -8,6 +8,12 @@
 #include "world/World.hpp"
 #include "world/ViewPlane.hpp"
 #include "tracers/Tracer.hpp"
+#include "image/Bloom.hpp"
+#include <chrono>
+
+#define USE_ACCELERATION true // set to false to render without BVH
+
+// #define USE_ACCELERATION false // set to true to render with BVH
 
 int main(int argc, char **argv)
 {
@@ -15,7 +21,15 @@ int main(int argc, char **argv)
   world.build();
 
   // build acceleration structure after all geometry is added
-  world.build_acceleration();
+  if (USE_ACCELERATION)
+  {
+    world.build_acceleration(); // builds and uses BVH
+  }
+  else
+  {
+    world.set_acceleration(nullptr);
+    std::cout << "Rendering WITHOUT acceleration structure" << std::endl;
+  }
 
   Sampler *sampler = world.sampler_ptr;
   ViewPlane &viewplane = world.vplane;
@@ -23,6 +37,7 @@ int main(int argc, char **argv)
 
   std::vector<Ray> rays;
 
+  auto start = std::chrono::high_resolution_clock::now();
   for (int x = 0; x < viewplane.hres; x++)
   {
     for (int y = 0; y < viewplane.vres; y++)
@@ -52,15 +67,43 @@ int main(int argc, char **argv)
       image.set_pixel(x, y, pixel_color);
     }
 
-    // progress indicator every 50 columns
-    if (x % 50 == 0)
+    // progress indicators of render time
+
+    int update_freq = (viewplane.hres < 50) ? 1 : 10;
+
+    if (x % update_freq == 0 || x == viewplane.hres - 1)
     {
       std::cout << "rendering: " << (x * 100 / viewplane.hres) << "%\r";
       std::cout.flush();
     }
   }
 
+  auto end = std::chrono::high_resolution_clock::now();
+  double seconds = std::chrono::duration<double>(end - start).count();
+  std::cout << "\nRender time: " << (int)(seconds / 3600) << "h "
+            << (int)((int)seconds % 3600 / 60) << "m "
+            << (int)seconds % 60 << "s\n";
+
+  // bloom parameters scale with resolution
+  int bloom_radius;
+  float bloom_threshold, bloom_strength;
+
+  if (world.vplane.hres >= 1920)
+  {
+    bloom_radius = 30;
+    bloom_threshold = 0.2f;
+    bloom_strength = 2.0f;
+  }
+  else
+  {
+    bloom_radius = 14;
+    bloom_threshold = 0.2f;
+    bloom_strength = 2.0f;
+  }
+  Bloom bloom(bloom_threshold, bloom_radius, bloom_strength);
+  bloom.apply(image);
   image.write_png("scene.png");
+
   std::cout << "\nwrote scene.png\n";
   return 0;
 }
