@@ -8,10 +8,12 @@
 #include "world/World.hpp"
 #include "world/ViewPlane.hpp"
 #include "tracers/Tracer.hpp"
-#include "image/Bloom.hpp"   
+#include "image/Bloom.hpp"
 #include <chrono>
 
-#define USE_ACCELERATION true   // set to false to render without BVH
+// #define USE_ACCELERATION true // set to false to render without BVH
+
+#define USE_ACCELERATION true // set to true to render with BVH
 
 int main(int argc, char **argv)
 {
@@ -19,11 +21,14 @@ int main(int argc, char **argv)
   world.build();
 
   // build acceleration structure after all geometry is added
-  if (USE_ACCELERATION) {
-    world.build_acceleration();  // builds and uses BVH
-  } else {
-    // acceleration_ptr stays nullptr — World::hit_objects brute forces all geometry
-    std::cout << "Rendering WITHOUT acceleration structure (brute force)" << std::endl;
+  if (USE_ACCELERATION)
+  {
+    world.build_acceleration(); // builds and uses BVH
+  }
+  else
+  {
+    world.set_acceleration(nullptr);
+    std::cout << "Rendering WITHOUT acceleration structure" << std::endl;
   }
 
   Sampler *sampler = world.sampler_ptr;
@@ -62,19 +67,29 @@ int main(int argc, char **argv)
       image.set_pixel(x, y, pixel_color);
     }
 
-    // progress indicator every 50 columns
-    if (x % 50 == 0)
+    // progress indicators
+    // if (x % 50 == 0)
+    // {
+    //   std::cout << "rendering: " << (x * 100 / viewplane.hres) << "%\r";
+    //   std::cout.flush();
+    // }
+
+    int update_freq = (viewplane.hres < 50) ? 1 : 10; // Updates every 10 columns for medium renders
+
+    if (x % update_freq == 0 || x == viewplane.hres - 1)
     {
       std::cout << "rendering: " << (x * 100 / viewplane.hres) << "%\r";
       std::cout.flush();
     }
   }
+
   auto end = std::chrono::high_resolution_clock::now();
   double seconds = std::chrono::duration<double>(end - start).count();
-  std::cout << "\nRender time: " << (int)(seconds/3600) << "h "
-            << (int)((int)seconds%3600/60) << "m "
-            << (int)seconds%60 << "s\n";
-    // Bloom parameters scale with resolution
+  std::cout << "\nRender time: " << (int)(seconds / 3600) << "h "
+            << (int)((int)seconds % 3600 / 60) << "m "
+            << (int)seconds % 60 << "s\n";
+
+  // Bloom parameters scale with resolution
   int bloom_radius;
   float bloom_threshold, bloom_strength;
 
@@ -90,14 +105,17 @@ int main(int argc, char **argv)
   //     bloom_strength  = 1.5f;
   // }
 
-  if (world.vplane.hres >= 1920) {
-      bloom_radius    = 30;
-      bloom_threshold = 0.2f;   // changed from 0.45
-      bloom_strength  = 2.0f;   // changed from 1.5
-  } else {
-      bloom_radius    = 14;
-      bloom_threshold = 0.2f;   // changed from 0.45
-      bloom_strength  = 2.0f;   // changed from 1.5
+  if (world.vplane.hres >= 1920)
+  {
+    bloom_radius = 30;
+    bloom_threshold = 0.2f; // changed from 0.45
+    bloom_strength = 2.0f;  // changed from 1.5
+  }
+  else
+  {
+    bloom_radius = 14;
+    bloom_threshold = 0.2f; // changed from 0.45
+    bloom_strength = 2.0f;  // changed from 1.5
   }
   Bloom bloom(bloom_threshold, bloom_radius, bloom_strength);
   bloom.apply(image);
