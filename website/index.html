@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gas Station Cyberpunk — Ray Tracer Project</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a12;
+  --bg-card: #12121e;
+  --bg-card-hover: #1a1a2e;
+  --neon: #ff0066;
+  --neon-glow: rgba(255, 0, 102, 0.4);
+  --warm: #fff5e6;
+  --text: #c8c8d4;
+  --text-dim: #7a7a8e;
+  --accent-blue: #4a6cf7;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ─── NAV ─── */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.3s;
+}
+nav.scrolled {
+  background: rgba(10, 10, 18, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 0, 102, 0.15);
+}
+nav .logo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--warm);
+  letter-spacing: 0.04em;
+}
+nav .logo span { color: var(--neon); }
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 2rem;
+}
+nav ul li a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: color 0.3s;
+}
+nav ul li a:hover { color: var(--neon); }
+
+/* ─── HERO ─── */
+.hero {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: url('images/blender_scene.png') center center / cover no-repeat;
+  filter: brightness(0.55);
+  transform: scale(1.05);
+  transition: transform 8s ease-out;
+}
+.hero.visible .hero-bg { transform: scale(1); }
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(10,10,18,0.3) 0%, rgba(10,10,18,0.1) 40%, rgba(10,10,18,0.85) 100%);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 800px;
+  padding: 0 2rem;
+}
+.hero-content h1 {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800;
+  color: var(--warm);
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 40px rgba(255, 0, 102, 0.3);
+}
+.hero-content h1 span { color: var(--neon); }
+.hero-content p {
+  font-size: 1.15rem;
+  color: var(--text);
+  max-width: 550px;
+  margin: 0 auto 2.5rem;
+}
+.hero-content .subtitle {
+  display: inline-block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--neon);
+  border: 1px solid var(--neon);
+  padding: 0.4rem 1.2rem;
+  border-radius: 2rem;
+  margin-bottom: 1.5rem;
+}
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: bounce 2s infinite;
+}
+.scroll-indicator .arrow {
+  width: 20px;
+  height: 20px;
+  border-right: 2px solid var(--neon);
+  border-bottom: 2px solid var(--neon);
+  transform: rotate(45deg);
+}
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(8px); }
+}
+
+/* ─── SECTIONS ─── */
+section {
+  padding: 6rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--neon);
+  margin-bottom: 0.75rem;
+}
+.section-title {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  color: var(--warm);
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+.section-desc {
+  font-size: 1.05rem;
+  max-width: 700px;
+  color: var(--text);
+  margin-bottom: 3rem;
+}
+
+/* ─── REVEAL ANIMATION ─── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── SCENE OVERVIEW ─── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+.overview-grid img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.overview-grid .img-label {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.overview-text {
+  margin-bottom: 3rem;
+}
+
+/* ─── FEATURES ─── */
+.features-section { background: var(--bg); }
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 0, 102, 0.3);
+  box-shadow: 0 8px 30px rgba(255, 0, 102, 0.08);
+}
+.feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255, 0, 102, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  margin-bottom: 1.2rem;
+  color: var(--neon);
+}
+.feature-card h3 {
+  font-size: 1.05rem;
+  color: var(--warm);
+  margin-bottom: 0.6rem;
+}
+.feature-card p {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+/* ─── ACCELERATION ─── */
+.accel-section {
+  background: linear-gradient(180deg, var(--bg) 0%, #0d0d1a 100%);
+  padding: 6rem 2rem;
+}
+.accel-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.accel-table-wrap {
+  overflow-x: auto;
+  margin: 2rem 0 3rem;
+}
+.accel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.accel-table th, .accel-table td {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.accel-table th {
+  color: var(--neon);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+.accel-table td { color: var(--text); }
+.accel-table tr:hover td { background: rgba(255,255,255,0.02); }
+.accel-table .highlight {
+  color: var(--neon);
+  font-weight: 600;
+}
+.accel-images {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.accel-images figure {
+  text-align: center;
+}
+.accel-images img {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.accel-images figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ─── GALLERY ─── */
+.gallery-section {
+  padding: 6rem 2rem;
+}
+.gallery-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.tab-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  padding: 0.8rem 2rem;
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: var(--font);
+}
+.tab-btn:hover {
+  border-color: var(--neon);
+  color: var(--warm);
+}
+.tab-btn.active {
+  background: rgba(255, 0, 102, 0.12);
+  border-color: var(--neon);
+  color: var(--neon);
+}
+.tab-panel {
+  display: none;
+  animation: fadeIn 0.4s ease;
+}
+.tab-panel.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: var(--font);
+  margin-bottom: 2rem;
+}
+.back-btn:hover {
+  border-color: var(--neon);
+  color: var(--neon);
+}
+.render-display {
+  margin-bottom: 2rem;
+}
+.render-display img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.render-meta {
+  display: flex;
+  gap: 2rem;
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+.render-meta .meta-item {
+  display: flex;
+  flex-direction: column;
+}
+.render-meta .meta-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+.render-meta .meta-value {
+  font-size: 1.1rem;
+  color: var(--warm);
+  font-weight: 600;
+}
+.code-block {
+  background: #1a1b26;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.2rem;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.code-block-header span {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.code-block pre {
+  padding: 1.2rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.code-block pre code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* ─── CONTRIBUTIONS ─── */
+.contrib-section {
+  background: linear-gradient(180deg, var(--bg) 0%, #08080f 100%);
+  padding: 6rem 2rem;
+}
+.contrib-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.contrib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+.contrib-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 2rem;
+}
+.contrib-card h3 {
+  color: var(--warm);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+.contrib-card p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.references {
+  margin-top: 2rem;
+}
+.references h3 {
+  color: var(--warm);
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+.references ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.references li {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  padding-left: 1rem;
+  position: relative;
+}
+.references li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--neon);
+}
+
+/* ─── FOOTER ─── */
+footer {
+  text-align: center;
+  padding: 2rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  nav ul { display: none; }
+  .overview-grid { grid-template-columns: 1fr; }
+  .accel-images { grid-template-columns: 1fr; }
+  .tab-buttons { flex-direction: column; }
+  section { padding: 4rem 1.2rem; }
+  .accel-section, .gallery-section, .contrib-section { padding: 4rem 1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <div class="logo">RAY<span>TRACER</span></div>
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#acceleration">Acceleration</a></li>
+    <li><a href="#gallery">Gallery</a></li>
+    <li><a href="#contributions">Team</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <div class="subtitle">CS 440 &mdash; Computer Graphics</div>
+    <h1>Gas Station <span>Cyberpunk</span></h1>
+    <p>A nighttime gas station scene with over 2 million primitives, ray traced from scratch in C++.</p>
+  </div>
+  <div class="scroll-indicator">
+    <span>Scroll</span>
+    <div class="arrow"></div>
+  </div>
+</section>
+
+<!-- SCENE OVERVIEW -->
+<section id="overview">
+  <div class="reveal">
+    <div class="section-label">Scene Overview</div>
+    <h2 class="section-title">From Blender to Rays</h2>
+    <div class="overview-text section-desc">
+      The scene depicts a moody, nighttime gas station featuring a BMW-style sports car and a motorcycle parked under the
+      canopy. The entire environment was modeled in Blender, exported as an OBJ/MTL file containing over
+      <strong style="color:var(--neon)">2 million triangles</strong>, and rendered using our custom C++ ray tracing engine.
+      The warm canopy lights contrast against a deep twilight sky, while neon pink accents on the pillars
+      and roof edge add a cyberpunk atmosphere. Reflective car paint, chrome, and a wet-look ground plane
+      bring the scene to life with realistic material interactions.
+    </div>
+  </div>
+  <div class="overview-grid reveal">
+    <div>
+      <img src="images/blender_scene.png" alt="Blender reference render">
+      <div class="img-label">Blender Reference</div>
+    </div>
+    <div>
+      <img src="images/high_res_scene.png" alt="Ray traced render">
+      <div class="img-label">Ray Traced (1920 &times; 1080)</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="features-section">
+  <div class="reveal">
+    <div class="section-label">Implementation</div>
+    <h2 class="section-title">Engine Features</h2>
+    <p class="section-desc">
+      Built from the ground up in C++ following the Suffern architecture. Every feature below was implemented
+      for the Homework 5 base and extended for this project.
+    </p>
+  </div>
+  <div class="features-grid">
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9650;</div>
+      <h3>Triangle Meshes &amp; OBJ Loading</h3>
+      <p>Full OBJ/MTL parser that loads complex meshes with per-face material assignment. Supports coordinate transforms for Blender-to-engine axis mapping.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9673;</div>
+      <h3>Primitives</h3>
+      <p>Analytical ray-intersection for Spheres, Planes, and Triangles with proper normal computation and bounding box support.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9632;</div>
+      <h3>Matte Material</h3>
+      <p>Lambertian diffuse shading using a Diffuse BRDF. Supports ambient and diffuse coefficients with configurable color.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#10023;</div>
+      <h3>Phong Material</h3>
+      <p>Full Phong illumination model with ambient, diffuse, and specular (Glossy BRDF) components. Configurable exponent controls highlight sharpness.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9830;</div>
+      <h3>Reflective Material</h3>
+      <p>Mirror-like reflections via recursive ray tracing with a Specular BRDF. Used for car paint, chrome, and glass with tinted reflection colors.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9788;</div>
+      <h3>Point &amp; Directional Lights</h3>
+      <p>Point lights with distance attenuation for the canopy fixtures, and directional lights for moonlight and global fill. 20+ lights in the scene.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9686;</div>
+      <h3>Shadow Casting</h3>
+      <p>Shadow rays traced from hit points to every light source. The ShadowCaster tracer integrates shadow tests into the full shading pipeline.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#8635;</div>
+      <h3>Recursive Reflections</h3>
+      <p>Reflective materials recursively trace reflected rays up to a configurable depth, producing realistic multi-bounce reflections on the car body and ground.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9638;</div>
+      <h3>Jittered Anti-Aliasing</h3>
+      <p>Stratified jittered supersampling with n&times;n sub-pixel rays per pixel. The high-res render uses 6&times;6 = 36 samples per pixel for smooth edges.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9881;</div>
+      <h3>BVH Acceleration</h3>
+      <p>Bounding Volume Hierarchy partitions 1M+ triangles into a balanced tree for O(log n) ray intersection tests, dramatically cutting render times.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#10026;</div>
+      <h3>Bloom Post-Processing</h3>
+      <p>Screen-space bloom effect: bright pixels above a threshold are blurred with a separable Gaussian and composited back, creating neon glow on lights and emissive surfaces.</p>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-icon">&#9634;</div>
+      <h3>Perspective &amp; Parallel Cameras</h3>
+      <p>Perspective camera with configurable eye position and direction-through-pixel projection. Parallel camera available for orthographic views.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ACCELERATION -->
+<div class="accel-section" id="acceleration">
+  <div class="accel-inner">
+    <div class="reveal">
+      <div class="section-label">Performance</div>
+      <h2 class="section-title">Acceleration Structure</h2>
+      <p class="section-desc">
+        With over 1 million primitives, brute-force ray intersection is impractical. Our BVH acceleration structure
+        reduces intersection tests from O(n) to O(log n), yielding massive speedups.
+      </p>
+    </div>
+    <div class="accel-table-wrap reveal">
+      <table class="accel-table">
+        <thead>
+          <tr>
+            <th>Configuration</th>
+            <th>Resolution</th>
+            <th>Samples/px</th>
+            <th>Render Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Low Res + <span class="highlight">BVH</span></td>
+            <td>480 &times; 360</td>
+            <td>2 &times; 2</td>
+            <td class="highlight">~36 seconds</td>
+          </tr>
+          <tr>
+            <td>No Acceleration (brute force)</td>
+            <td>16 &times; 12</td>
+            <td>1 &times; 1</td>
+            <td class="highlight">~3 mins</td>
+          </tr>
+          <tr>
+            <td>High Res + <span class="highlight">BVH</span></td>
+            <td>1920 &times; 1080</td>
+            <td>6 &times; 6</td>
+            <td class="highlight">~1 hr 46 min</td>
+          </tr>
+          <tr>
+            <td>High Res Wide Angle + <span class="highlight">BVH</span></td>
+            <td>1920 &times; 1080</td>
+            <td>6 &times; 6</td>
+            <td class="highlight">~1 hr 6 min</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="accel-images reveal">
+      <figure>
+        <img src="images/low_render_bvh.png" alt="Low res render with BVH">
+        <figcaption>Low Res (480 &times; 360) &mdash; BVH Enabled (~36s)</figcaption>
+      </figure>
+      <figure>
+        <img src="images/16x12,1 (No accel).png" alt="Render without acceleration" style="image-rendering: pixelated;">
+        <figcaption>16 &times; 12 &mdash; No Acceleration (brute force)</figcaption>
+      </figure>
+    </div>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<section class="gallery-section" id="gallery">
+  <div class="gallery-inner">
+    <div class="reveal">
+      <div class="section-label">Renders</div>
+      <h2 class="section-title">Render Gallery</h2>
+      <p class="section-desc">
+        Explore the different renders of the scene. Each tab shows the rendered image, metadata, and the
+        corresponding <code>World::build</code> configuration.
+      </p>
+    </div>
+
+    <!-- Tab buttons -->
+    <div class="tab-buttons reveal" id="tabButtons">
+      <button class="tab-btn active" data-tab="highres">High Resolution</button>
+      <button class="tab-btn" data-tab="highres-wide">High Res (Wide Angle)</button>
+      <button class="tab-btn" data-tab="lowres">Low Resolution</button>
+      <button class="tab-btn" data-tab="noaccel">No Acceleration</button>
+    </div>
+
+    <!-- HIGH RES TAB -->
+    <div class="tab-panel active" id="tab-highres">
+      <button class="back-btn" onclick="showTabSelector()">&#8592; Back to Gallery</button>
+      <div class="render-display">
+        <img src="images/high_res_scene.png" alt="High resolution render">
+      </div>
+      <div class="render-meta">
+        <div class="meta-item">
+          <span class="meta-label">Resolution</span>
+          <span class="meta-value">1920 &times; 1080</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Samples / Pixel</span>
+          <span class="meta-value">6 &times; 6 (36)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Acceleration</span>
+          <span class="meta-value">BVH</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Render Time</span>
+          <span class="meta-value">~1 hr 46 min</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Post-Processing</span>
+          <span class="meta-value">Bloom</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span>build/buildGasStationScene.cpp &mdash; World::build (high res config)</span>
+        </div>
+        <pre><code class="language-cpp">// High resolution configuration
+vplane.hres = 1920;
+vplane.vres = 1080;
+sampler_ptr = new Jittered(camera_ptr, &vplane, 6);
+
+set_camera(new Perspective(1.26f, -5.84f, 6.61f));
+set_tracer(new ShadowCaster(this));
+set_acceleration(new BVH(this));
+
+// Bloom post-processing (in raytracer.cpp)
+bloom_radius    = 30;
+bloom_threshold = 0.2f;
+bloom_strength  = 2.0f;</code></pre>
+      </div>
+    </div>
+
+    <!-- HIGH RES WIDE ANGLE TAB -->
+    <div class="tab-panel" id="tab-highres-wide">
+      <button class="back-btn" onclick="showTabSelector()">&#8592; Back to Gallery</button>
+      <div class="render-display">
+        <img src="images/high_res_scene_wide_angle.png" alt="High resolution render (wide angle)">
+      </div>
+      <div class="render-meta">
+        <div class="meta-item">
+          <span class="meta-label">Resolution</span>
+          <span class="meta-value">1920 &times; 1080</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Samples / Pixel</span>
+          <span class="meta-value">6 &times; 6 (36)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Acceleration</span>
+          <span class="meta-value">BVH</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Render Time</span>
+          <span class="meta-value">~1 hr 6 min</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Post-Processing</span>
+          <span class="meta-value">Bloom</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span>build/buildGasStationScene.cpp &mdash; World::build (wide angle camera)</span>
+        </div>
+        <pre><code class="language-cpp">// High resolution — wide angle camera
+vplane.hres = 1920;
+vplane.vres = 1080;
+sampler_ptr = new Jittered(camera_ptr, &vplane, 6);
+
+set_camera(new Perspective(3.0f, -5.0f, 8.0f));
+set_tracer(new ShadowCaster(this));
+set_acceleration(new BVH(this));
+
+// Bloom post-processing (in raytracer.cpp)
+bloom_radius    = 30;
+bloom_threshold = 0.2f;
+bloom_strength  = 2.0f;</code></pre>
+      </div>
+    </div>
+
+    <!-- LOW RES TAB -->
+    <div class="tab-panel" id="tab-lowres">
+      <button class="back-btn" onclick="showTabSelector()">&#8592; Back to Gallery</button>
+      <div class="render-display">
+        <img src="images/low_render_bvh.png" alt="Low resolution render">
+      </div>
+      <div class="render-meta">
+        <div class="meta-item">
+          <span class="meta-label">Resolution</span>
+          <span class="meta-value">480 &times; 360</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Samples / Pixel</span>
+          <span class="meta-value">2 &times; 2 (4)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Acceleration</span>
+          <span class="meta-value">BVH</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Render Time</span>
+          <span class="meta-value">~36 seconds</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Post-Processing</span>
+          <span class="meta-value">Bloom</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span>build/buildGasStationScene.cpp &mdash; World::build (low res config)</span>
+        </div>
+        <pre><code class="language-cpp">// Low resolution configuration (quick preview)
+vplane.hres = 480;
+vplane.vres = 360;
+sampler_ptr = new Jittered(camera_ptr, &vplane, 2);
+
+set_camera(new Perspective(3.0f, -5.0f, 8.0f));
+set_tracer(new ShadowCaster(this));
+set_acceleration(new BVH(this));
+
+// Bloom post-processing (in raytracer.cpp)
+bloom_radius    = 14;
+bloom_threshold = 0.2f;
+bloom_strength  = 2.0f;</code></pre>
+      </div>
+    </div>
+
+    <!-- NO ACCEL TAB -->
+    <div class="tab-panel" id="tab-noaccel">
+      <button class="back-btn" onclick="showTabSelector()">&#8592; Back to Gallery</button>
+      <div class="render-display">
+        <img src="images/16x12,1 (No accel).png" alt="Render without acceleration">
+      </div>
+      <div class="render-meta">
+        <div class="meta-item">
+          <span class="meta-label">Resolution</span>
+          <span class="meta-value">16 &times; 12</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Samples / Pixel</span>
+          <span class="meta-value">1 &times; 1 (1)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Acceleration</span>
+          <span class="meta-value">None (brute force)</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Render Time</span>
+          <span class="meta-value">O(n) per ray</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Post-Processing</span>
+          <span class="meta-value">Bloom</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span>raytracer.cpp &mdash; acceleration disabled</span>
+        </div>
+        <pre><code class="language-cpp">#define USE_ACCELERATION false
+
+// With USE_ACCELERATION = false, the engine skips BVH
+// and brute-forces ray-geometry intersection against
+// all 1M+ primitives — O(n) per ray.
+
+// Minimal resolution to finish in reasonable time:
+vplane.hres = 16;
+vplane.vres = 12;
+sampler_ptr = new Jittered(camera_ptr, &vplane, 1);
+set_tracer(new ShadowCaster(this));
+// set_acceleration is NOT called</code></pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- CONTRIBUTIONS -->
+<div class="contrib-section" id="contributions">
+  <div class="contrib-inner">
+    <div class="reveal">
+      <div class="section-label">Team</div>
+      <h2 class="section-title">Contributions</h2>
+    </div>
+    <div class="contrib-grid reveal">
+      <div class="contrib-card">
+        <h3>Javeria</h3>
+        <p>
+          Implemented all utility classes (Point3D, Vector3D, RGBColor, Ray, ShadeInfo, BBox).
+          Implemented geometry classes: Sphere (quadratic formula), Plane (dot product), Triangle (M&ouml;ller&ndash;Trumbore algorithm).
+          Implemented World, Camera, and Plane classes from HW5 with minor tweaks.
+          Implemented the BRDF system: Lambertian Diffuse, Phong Glossy, and Perfect Mirror Specular.
+          Implemented materials: Matte, Phong, and Reflective (with recursive mirror reflections up to depth 5).
+          Implemented the lighting system: abstract Light base class, PointLight, and DirectionalLight with shadow ray support.
+          Implemented the Tracer hierarchy: Basic tracer and ShadowCaster tracer.
+          Implemented BVH acceleration structure reducing intersection tests from O(n) to O(log n).
+          Added cyberpunk neon lighting using Bloom post-processing class.
+        </p>
+      </div>
+      <div class="contrib-card">
+        <h3>Umair</h3>
+        <p>
+          Sourced gas station, car, and motorcycle 3D assets from free public sources.
+          Prepared and adjusted all models in Blender (scale, orientation, axis alignment).
+          Exported combined scene as OBJ and identified all 50+ material names from MTL file.
+          Created distinct material definitions mapped to all MTL material names.
+          Extended OBJ loader to support per-material loading via std::map.
+          Determined all light positions by converting Blender coordinates to ray tracer coordinate system.
+          Tuned light sources across multiple iterations for correct scene brightness.
+          Built and maintained the complete build file through all iterations.
+          Implemented Jittered sampler for antialiasing using n&times;n randomly offset rays per pixel.
+          Built the project website with scene overview, features, acceleration comparison, build file references, contributions, and references.
+          Rendering and performance comparison conducted jointly with Javeria.
+        </p>
+      </div>
+    </div>
+    <div class="references reveal">
+      <h3>References</h3>
+      <ul>
+        <li>Kevin Suffern, <em>Ray Tracing from the Ground Up</em> — engine architecture and shading model reference</li>
+        <li>Blender 3D (blender.org) — scene modeling and OBJ/MTL export</li>
+        <li>Gas station, car, and motorcycle 3D models — free public assets (BlenderKit)</li>
+        <li>stb_image_write.h — single-header PNG writer by Sean Barrett</li>
+        <li>CS 440 Assignment 5 starter code — Habib University, Spring 2026</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<footer>
+  CS 440 Computer Graphics &mdash; Habib University &mdash; Spring 2026
+</footer>
+
+<!-- highlight.js for code syntax highlighting -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
+
+<script>
+hljs.highlightAll();
+
+// Navbar scroll effect
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 50);
+});
+
+// Hero visible on load
+document.querySelector('.hero').classList.add('visible');
+
+// Scroll reveal with IntersectionObserver
+const revealElements = document.querySelectorAll('.reveal');
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => {
+        entry.target.classList.add('visible');
+      }, i * 80);
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+revealElements.forEach(el => revealObserver.observe(el));
+
+// Tab switching
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+const tabButtonsContainer = document.getElementById('tabButtons');
+
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.dataset.tab;
+
+    tabButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    tabPanels.forEach(panel => {
+      panel.classList.remove('active');
+      if (panel.id === `tab-${tabId}`) {
+        panel.classList.add('active');
+      }
+    });
+  });
+});
+
+function showTabSelector() {
+  document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
